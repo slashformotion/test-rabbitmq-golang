@@ -1,4 +1,4 @@
-module github.com/slashformotion/test-rabbitmq
+module github.com/slashformotion/test-rabbitmq-golang
 
 go 1.22.5
 
