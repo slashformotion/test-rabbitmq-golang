@@ -1,5 +1,18 @@
-
 services:
+  producer:
+    build:
+      context: .
+      args:
+        APP: "producer"
+    container_name: "producer"
+    networks:
+      - rabbitmq_net
+    depends_on:
+      - rabbitmq2
+    environment:
+      BROKER: "amqp://guest:guest@rabbitmq2:5672/"
+
+  # rabbitmq stuff
   rabbitscout:
     image: ghcr.io/ralve-org/rabbitscout:latest
     ports:
@@ -87,6 +100,7 @@ services:
 
 networks:
   rabbitmq_net:
+
 
 volumes:
   rabbitmq1_data:
