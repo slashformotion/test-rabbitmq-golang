@@ -1,0 +1,97 @@
+
+services:
+  rabbitscout:
+    image: ghcr.io/ralve-org/rabbitscout:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_RABBITMQ_HOST=rabbitmq1
+      - NEXT_PUBLIC_RABBITMQ_PORT=15672
+      - NEXT_PUBLIC_RABBITMQ_VHOST=/
+      - RABBITMQ_USERNAME=guest
+      - RABBITMQ_PASSWORD=guest
+      - NEXT_PUBLIC_API_URL=http://localhost:3000
+    networks:
+      - rabbitmq_net
+  rabbitmq1:
+    image: rabbitmq:4-management # Use the management image for the UI
+    hostname: rabbitmq1
+    container_name: rabbitmq1
+    ports:
+      - "5672:5672" # AMQP port
+      - "15672:15672" # Management UI port
+    environment:
+      # Define the Erlang cookie for clustering. Must be the same for all nodes.
+      # It's best practice to use a secret or a shared volume for this in production.
+      RABBITMQ_ERLANG_COOKIE: "SWFSLAKJDFLKAJSDF" # Replace with a strong, unique cookie
+      # Define the node name
+      RABBITMQ_NODENAME: "rabbit@rabbitmq1"
+      # Define the cluster nodes to join on startup
+      RABBITMQ_CLUSTER_FORCED_NODES: "rabbit@rabbitmq1,rabbit@rabbitmq2,rabbit@rabbitmq3"
+      # Enable auto-clustering (optional, but simplifies setup)
+      RABBITMQ_CLUSTER_AUTOCLUSTER: "fence" # Or "cookie", "dns", etc.
+      # Define the hostname for autocustering if using fence/dns
+      RABBITMQ_AUTOCLUSTER_HOSTNAME: "rabbitmq1"
+      # Define the type of node (disc or ram)
+      RABBITMQ_NODE_TYPE: "disc"
+    volumes:
+      # Persist data and logs
+      - rabbitmq1_data:/var/lib/rabbitmq/mnesia
+      - rabbitmq1_logs:/var/log/rabbitmq
+    networks:
+      - rabbitmq_net
+
+  rabbitmq2:
+    image: rabbitmq:4-management
+    # hostname: rabbitmq2
+    container_name: rabbitmq2
+    ports:
+      - "5673:5672" # Map to a different host port to avoid conflicts
+      - "15673:15672"
+    environment:
+      RABBITMQ_ERLANG_COOKIE: "SWFSLAKJDFLKAJSDF" # Must match rabbitmq1
+      RABBITMQ_NODENAME: "rabbit@rabbitmq2"
+      RABBITMQ_CLUSTER_FORCED_NODES: "rabbit@rabbitmq1,rabbit@rabbitmq2,rabbit@rabbitmq3"
+      RABBITMQ_CLUSTER_AUTOCLUSTER: "fence"
+      RABBITMQ_AUTOCLUSTER_HOSTNAME: "rabbitmq2"
+      RABBITMQ_NODE_TYPE: "disc"
+    volumes:
+      - rabbitmq2_data:/var/lib/rabbitmq/mnesia
+      - rabbitmq2_logs:/var/log/rabbitmq
+    networks:
+      - rabbitmq_net
+    depends_on:
+      - rabbitmq1 # Ensure rabbitmq1 starts first (helps with clustering)
+
+  rabbitmq3:
+    image: rabbitmq:4-management
+    # hostname: rabbitmq3
+    container_name: rabbitmq3
+    ports:
+      - "5674:5672"
+      - "15674:15672"
+    environment:
+      RABBITMQ_ERLANG_COOKIE: "SWFSLAKJDFLKAJSDF" # Must match rabbitmq1
+      RABBITMQ_NODENAME: "rabbit@rabbitmq3"
+      RABBITMQ_CLUSTER_FORCED_NODES: "rabbit@rabbitmq1,rabbit@rabbitmq2,rabbit@rabbitmq3"
+      RABBITMQ_CLUSTER_AUTOCLUSTER: "fence"
+      RABBITMQ_AUTOCLUSTER_HOSTNAME: "rabbitmq3"
+      RABBITMQ_NODE_TYPE: "disc"
+    volumes:
+      - rabbitmq3_data:/var/lib/rabbitmq/mnesia
+      - rabbitmq3_logs:/var/log/rabbitmq
+    networks:
+      - rabbitmq_net
+    depends_on:
+      - rabbitmq1 # Ensure rabbitmq1 starts first
+
+networks:
+  rabbitmq_net:
+
+volumes:
+  rabbitmq1_data:
+  rabbitmq1_logs:
+  rabbitmq2_data:
+  rabbitmq2_logs:
+  rabbitmq3_data:
+  rabbitmq3_logs:
